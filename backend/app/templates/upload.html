@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - AI Auditing System{% endblock %}
+
+{% block header_title %}Upload Document{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="margin-bottom: var(--spacing-4);">
+        <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+    
+    <h2>Upload Document</h2>
+    <p style="color: var(--color-gray-600); margin-bottom: var(--spacing-6);">
+        Upload a document to start a compliance audit. Supported formats: PDF, DOCX, Markdown, TXT, HTML.
+    </p>
+    
+    <form id="upload-form" 
+          x-data="{ uploading: false, progress: 0 }"
+          @submit.prevent="uploading = true; uploadDocument($event)"
+          enctype="multipart/form-data"
+          method="POST"
+          action="/api/documents"
+          style="max-width: 600px;">
+        
+        <div class="filter-group" style="margin-bottom: var(--spacing-4);">
+            <label for="file" style="display: block; margin-bottom: var(--spacing-2); font-weight: var(--font-weight-semibold);">
+                Document File <span style="color: var(--color-danger);">*</span>
+            </label>
+            <input type="file" 
+                   id="file" 
+                   name="file" 
+                   accept=".pdf,.docx,.md,.txt,.html"
+                   required
+                   style="width: 100%; padding: var(--spacing-2); border: 2px dashed var(--color-gray-300); border-radius: 0.375rem; cursor: pointer;"
+                   @change="handleFileSelect($event)">
+            <p style="font-size: var(--font-size-sm); color: var(--color-gray-600); margin-top: var(--spacing-2);">
+                Maximum file size: 50MB. Accepted formats: PDF, DOCX, Markdown, TXT, HTML.
+            </p>
+        </div>
+        
+        <div class="filter-group" style="margin-bottom: var(--spacing-4);">
+            <label for="organization" style="display: block; margin-bottom: var(--spacing-2); font-weight: var(--font-weight-semibold);">
+                Organization
+            </label>
+            <input type="text" 
+                   id="organization" 
+                   name="organization" 
+                   placeholder="e.g., ACME Corp"
+                   style="width: 100%; padding: var(--spacing-2); border: 1px solid var(--color-gray-300); border-radius: 0.375rem;">
+        </div>
+        
+        <div class="filter-group" style="margin-bottom: var(--spacing-4);">
+            <label for="source_type" style="display: block; margin-bottom: var(--spacing-2); font-weight: var(--font-weight-semibold);">
+                Source Type
+            </label>
+            <select id="source_type" name="source_type" style="width: 100%; padding: var(--spacing-2); border: 1px solid var(--color-gray-300); border-radius: 0.375rem;">
+                <option value="manual">Manual</option>
+                <option value="regulation">Regulation</option>
+                <option value="amc">AMC (Acceptable Means of Compliance)</option>
+                <option value="gm">GM (Guidance Material)</option>
+                <option value="evidence">Evidence</option>
+            </select>
+        </div>
+        
+        <div class="filter-group" style="margin-bottom: var(--spacing-4);">
+            <label for="description" style="display: block; margin-bottom: var(--spacing-2); font-weight: var(--font-weight-semibold);">
+                Description (Optional)
+            </label>
+            <textarea id="description" 
+                      name="description" 
+                      rows="3"
+                      placeholder="Brief description of the document..."
+                      style="width: 100%; padding: var(--spacing-2); border: 1px solid var(--color-gray-300); border-radius: 0.375rem; font-family: inherit;"></textarea>
+        </div>
+        
+        <div style="display: flex; gap: var(--spacing-2); align-items: center;">
+            <button type="submit" 
+                    class="btn btn-primary"
+                    :disabled="uploading"
+                    style="min-width: 120px;">
+                <span x-show="!uploading">Upload Document</span>
+                <span x-show="uploading" style="display: inline-flex; align-items: center; gap: var(--spacing-2);">
+                    <span class="loading-spinner"></span>
+                    Uploading...
+                </span>
+            </button>
+            <a href="/dashboard" class="btn btn-secondary" :class="{ 'opacity-50': uploading }" :style="uploading ? 'pointer-events: none;' : ''">Cancel</a>
+        </div>
+        
+        <div x-show="uploading" style="margin-top: var(--spacing-4);">
+            <div class="progress-bar">
+                <div class="progress-fill" :style="'width: ' + progress + '%'"></div>
+            </div>
+            <p style="font-size: var(--font-size-sm); color: var(--color-gray-600); margin-top: var(--spacing-2); text-align: center;">
+                Uploading document...
+            </p>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="background: var(--color-gray-50);">
+    <h3 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-3);">What happens next?</h3>
+    <ol style="margin-left: var(--spacing-6); color: var(--color-gray-800);">
+        <li style="margin-bottom: var(--spacing-2);">Your document will be uploaded and stored securely</li>
+        <li style="margin-bottom: var(--spacing-2);">An audit will be automatically created and queued</li>
+        <li style="margin-bottom: var(--spacing-2);">The document will be processed and chunked for analysis</li>
+        <li>The audit will analyze compliance and generate findings</li>
+    </ol>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                showNotification('File size exceeds 50MB limit', 'error');
+                event.target.value = '';
+                return;
+            }
+            showNotification(`Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'info');
+        }
+    }
+    
+    function uploadDocument(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const component = Alpine.$data(form);
+        
+        component.uploading = true;
+        component.progress = 0;
+        
+        // Simulate progress
+        const progressInterval = setInterval(() => {
+            if (component.progress < 90) {
+                component.progress += 10;
+            }
+        }, 200);
+        
+        fetch('/api/documents', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            clearInterval(progressInterval);
+            component.progress = 100;
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                showNotification(data.error, 'error');
+                component.uploading = false;
+                component.progress = 0;
+            } else {
+                showNotification('Document uploaded successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1500);
+            }
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            console.error('Upload error:', error);
+            showNotification('Failed to upload document. Please try again.', 'error');
+            component.uploading = false;
+            component.progress = 0;
+        });
+    }
+</script>
+{% endblock %}
+

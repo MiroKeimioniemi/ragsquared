@@ -1,0 +1,112 @@
+Metadata-Version: 2.4
+Name: ai-auditing-backend
+Version: 0.1.0
+Summary: Hackathon MVP backend for the AI-assisted auditing system.
+Author-email: Junction25 Team <devnull@example.com>
+License: MIT
+Keywords: flask,audit,easa,compliance,ai
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: Flask
+Requires-Dist: Flask-RESTful
+Requires-Dist: python-dotenv
+Requires-Dist: SQLAlchemy
+Requires-Dist: alembic
+Requires-Dist: langchain
+Requires-Dist: openai
+Requires-Dist: httpx
+Requires-Dist: pydantic
+Requires-Dist: chromadb
+Requires-Dist: tiktoken
+Requires-Dist: structlog
+Requires-Dist: PyPDF2
+Requires-Dist: python-docx
+Requires-Dist: beautifulsoup4
+Requires-Dist: pytesseract
+Requires-Dist: pillow
+Requires-Dist: markdown
+Requires-Dist: md2pdf
+Requires-Dist: click
+Requires-Dist: typer
+Requires-Dist: rich
+Requires-Dist: uvicorn
+Requires-Dist: gunicorn
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Requires-Dist: types-requests; extra == "dev"
+
+# AI-Assisted Auditing Backend
+
+Hackathon-ready backend for the EASA Part-145 compliance assistant described in `AI_Auditing_System_Design.md`. The goal of this repo is to provide a minimal-yet-extensible Flask application that future tracks can build upon (document ingestion, agent orchestration, reporting, demo polish).
+
+## Features
+
+- Flask app factory with `/healthz` and `/` endpoints.
+- `pyproject.toml` with the LangChain/OpenRouter/Chroma stack described in the design doc.
+- Makefile helpers (`make dev-up`, `make dev-install`, `make lint`, `make test`).
+- `.env` management via `python-dotenv`.
+- Directory scaffolding for uploads, processed assets, logs, and vector stores.
+- Utility scripts for environment validation and data directory creation.
+
+## Quickstart
+
+```bash
+git clone <this repo>
+cd Junction25
+make dev-up
+```
+
+`make dev-up` will:
+
+1. Create a Python 3.11 virtual environment in `.venv/`.
+2. Install project dependencies with `pip`.
+3. Run `flask --app backend.app run --debug` to verify the hello-world API.
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in the required values.
+
+| Variable | Purpose |
+| --- | --- |
+| `FLASK_ENV` | Flask environment (`development`/`production`). |
+| `OPENROUTER_API_KEY` | API key for OpenRouter LLM calls. |
+| `OPENROUTER_MODEL_COMPLIANCE` | Default LLM for the ComplianceRunner (e.g., `gpt-4o-mini`). |
+| `EMBEDDING_MODEL` | Embedding model identifier (`text-embedding-3-large`, `all-mpnet-base-v2`, etc.). |
+| `DATABASE_URL` | SQLAlchemy-compatible connection string (defaults to `sqlite:///data/app.db`). |
+| `DATA_ROOT` | Filesystem root for uploads/logs (defaults to `./data`). |
+
+Run `python backend/scripts/check_env.py` for a quick sanity check.
+
+## Directory Layout
+
+```
+backend/
+  app/          Flask application package
+  scripts/      Utility/maintenance scripts
+  workers/      Future background workers live here
+contracts/      JSON schemas, prompt templates, shared contracts
+data/           Local storage (uploads, logs, chroma, processed)
+tests/          Pytest suite (placeholder)
+```
+
+## Make Targets
+
+| Target | Description |
+| --- | --- |
+| `make dev-up` | Bootstrap venv, install deps, ensure dirs, run Flask dev server. |
+| `make dev-install` | Create venv (if needed) and install dependencies. |
+| `make lint` | Run Ruff + Black in check mode. |
+| `make test` | Execute pytest (skeleton). |
+| `make ensure-dirs` | Run the directory scaffolding script manually. |
+
+## Next Steps
+
+- Flesh out document upload APIs and persistence layer.
+- Implement extraction, chunking, and embedding pipelines.
+- Build the single-agent compliance runner and reporting endpoints.
+- Add CI workflows and recorded fixtures for deterministic testing.
+

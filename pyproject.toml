@@ -1,0 +1,100 @@
+[project]
+name = "ai-auditing-backend"
+version = "0.1.0"
+description = "Hackathon MVP backend for the AI-assisted auditing system."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["flask", "audit", "easa", "compliance", "ai"]
+authors = [
+    { name = "Junction25 Team", email = "devnull@example.com" }
+]
+dependencies = [
+    "Flask",
+    "Flask-RESTful",
+    "python-dotenv",
+    "SQLAlchemy",
+    "alembic",
+    "langchain",
+    "openai",
+    "httpx",
+    "pydantic",
+    "chromadb",
+    "tiktoken",
+    "structlog",
+    "PyPDF2",
+    "python-docx",
+    "beautifulsoup4",
+    "pytesseract",
+    "pillow",
+    "markdown",
+    "md2pdf",
+    "click",
+    "typer",
+    "rich",
+    "uvicorn",
+    "gunicorn"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "black",
+    "mypy",
+    "types-requests"
+]
+
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["backend", "workers"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["backend"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+    "*/conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+

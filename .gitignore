@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Env files
+.env
+
+# Hackathon resources
+hackathon_resources/
+
+# Local data
+data/uploads/
+data/processed/
+data/logs/
+data/chroma/
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini
+

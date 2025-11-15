@@ -1,0 +1,870 @@
+{% extends "base.html" %}
+
+{% block title %}Review Audit: {{ audit.external_id }} - AI Auditing System{% endblock %}
+
+{% block header_title %}Review Audit: {{ audit.external_id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-4);">
+        <div>
+            <h2 style="margin-bottom: var(--spacing-2);">Audit Information</h2>
+            <p><strong>Status:</strong> <span class="badge badge-{{ 'green' if audit.status == 'completed' else 'yellow' if audit.status == 'running' else 'red' if audit.status == 'failed' else 'yellow' }}" id="status-badge">{{ audit.status.upper() }}{% if audit.is_draft %} (DRAFT){% endif %}</span></p>
+            <p><strong>Chunks Processed:</strong> <span id="status-chunk-info">{{ audit.chunk_completed }} / {{ audit.chunk_total }}</span></p>
+            {% if audit.failed_at and audit.failure_reason %}
+            <p style="color: var(--color-red); margin-top: var(--spacing-2);"><strong>Failure Reason:</strong> {{ audit.failure_reason[:200] }}{% if audit.failure_reason|length > 200 %}...{% endif %}</p>
+            {% endif %}
+            {% if audit.completed_at %}
+            <p><strong>Completed:</strong> <span id="completed-time">{{ audit.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}</span></p>
+            {% endif %}
+        </div>
+        <div style="display: flex; gap: var(--spacing-2);">
+            {% if audit.status == 'failed' or (audit.status == 'running' and audit.chunk_total > 0 and audit.chunk_completed < audit.chunk_total) %}
+            <button id="resume-btn" class="btn btn-primary" onclick="resumeAudit()" style="display: inline-flex; align-items: center; gap: var(--spacing-2);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Resume Audit
+            </button>
+            {% endif %}
+            {% if audit.status == 'completed' %}
+            <button id="generate-report-btn" class="btn btn-primary" onclick="generateFinalReport()" style="display: inline-flex; align-items: center; gap: var(--spacing-2);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Generate Final Report
+            </button>
+            {% endif %}
+            <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+    </div>
+    
+    {% if audit.status == 'running' or audit.status == 'queued' %}
+    <div class="progress-card" id="progress-card" style="margin-top: var(--spacing-4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-3);">
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2);">
+                    <div class="loading-spinner" id="status-spinner" style="display: inline-block;"></div>
+                    <span id="current-activity" style="font-weight: var(--font-weight-semibold); color: var(--color-primary);">
+                        {% if audit.status == 'queued' %}Waiting in queue...{% else %}Initializing audit process...{% endif %}
+                    </span>
+                </div>
+                <div style="display: flex; gap: var(--spacing-4); font-size: var(--font-size-sm); color: var(--color-gray-600);">
+                    <span id="chunk-progress">
+                        Processing: <strong id="chunk-completed">{{ audit.chunk_completed }}</strong> / <strong id="chunk-total">{{ audit.chunk_total }}</strong> chunks
+                    </span>
+                    <span id="progress-percent" style="font-weight: var(--font-weight-semibold);">
+                        {% if audit.chunk_total > 0 %}{{ ((audit.chunk_completed / audit.chunk_total) * 100)|round(1) }}%{% else %}0%{% endif %}
+                    </span>
+                    <span id="eta-display" style="color: var(--color-primary-light);">
+                        {% if audit.status == 'running' %}Calculating ETA...{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% if audit.chunk_total > 0 %}
+        <div class="progress-bar" style="position: relative; overflow: visible;">
+            <div class="progress-fill" id="progress-fill" style="width: {{ ((audit.chunk_completed / audit.chunk_total) * 100)|round(1) if audit.chunk_total > 0 else 0 }}%; transition: width 0.5s ease;"></div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Summary Statistics</h2>
+    
+    <!-- Compliance Score Gauge -->
+    <div style="margin-bottom: var(--spacing-6); text-align: center;">
+        <div style="position: relative; display: inline-block; width: 200px; height: 200px;">
+            <svg width="200" height="200" viewBox="0 0 200 200" style="transform: rotate(-90deg);">
+                <!-- Background circle -->
+                <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-gray-200)" stroke-width="20"/>
+                <!-- Progress circle -->
+                {% set score_pct = (flag_summary.compliance_score / 100) * 100 %}
+                {% set stroke_color = 'var(--color-green)' if flag_summary.compliance_score >= 80 else 'var(--color-yellow)' if flag_summary.compliance_score >= 60 else 'var(--color-red)' %}
+                <circle cx="100" cy="100" r="80" fill="none" 
+                        stroke="{{ stroke_color }}" 
+                        stroke-width="20"
+                        stroke-dasharray="{{ 2 * 3.14159 * 80 }}"
+                        stroke-dashoffset="{{ 2 * 3.14159 * 80 * (1 - score_pct / 100) }}"
+                        stroke-linecap="round"
+                        style="transition: stroke-dashoffset 0.5s ease;"/>
+            </svg>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                <div style="font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold); color: var(--color-primary);">
+                    {{ flag_summary.compliance_score }}
+                </div>
+                <div style="font-size: var(--font-size-sm); color: var(--color-gray-600);">Score</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Flag Breakdown Bar Chart -->
+    {% if flag_summary.total_flags > 0 %}
+    <div style="margin-bottom: var(--spacing-6);">
+        <h3 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-3); color: var(--color-primary);">Flag Breakdown</h3>
+        <div style="display: flex; height: 40px; border-radius: 0.375rem; overflow: hidden; margin-bottom: var(--spacing-2);">
+            {% set red_pct = (flag_summary.red_count / flag_summary.total_flags * 100) if flag_summary.total_flags > 0 else 0 %}
+            {% set yellow_pct = (flag_summary.yellow_count / flag_summary.total_flags * 100) if flag_summary.total_flags > 0 else 0 %}
+            {% set green_pct = (flag_summary.green_count / flag_summary.total_flags * 100) if flag_summary.total_flags > 0 else 0 %}
+            {% if flag_summary.red_count > 0 %}
+            <div style="background-color: var(--color-red); width: {{ red_pct }}%; display: flex; align-items: center; justify-content: center; color: white; font-weight: var(--font-weight-semibold); font-size: var(--font-size-sm);" title="RED: {{ flag_summary.red_count }}">
+                {% if red_pct > 10 %}{{ flag_summary.red_count }}{% endif %}
+            </div>
+            {% endif %}
+            {% if flag_summary.yellow_count > 0 %}
+            <div style="background-color: var(--color-yellow); width: {{ yellow_pct }}%; display: flex; align-items: center; justify-content: center; color: #856404; font-weight: var(--font-weight-semibold); font-size: var(--font-size-sm);" title="YELLOW: {{ flag_summary.yellow_count }}">
+                {% if yellow_pct > 10 %}{{ flag_summary.yellow_count }}{% endif %}
+            </div>
+            {% endif %}
+            {% if flag_summary.green_count > 0 %}
+            <div style="background-color: var(--color-green); width: {{ green_pct }}%; display: flex; align-items: center; justify-content: center; color: white; font-weight: var(--font-weight-semibold); font-size: var(--font-size-sm);" title="GREEN: {{ flag_summary.green_count }}">
+                {% if green_pct > 10 %}{{ flag_summary.green_count }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div style="display: flex; gap: var(--spacing-4); justify-content: center; font-size: var(--font-size-sm); color: var(--color-gray-600);">
+            <span>RED: {{ flag_summary.red_count }}</span>
+            <span>YELLOW: {{ flag_summary.yellow_count }}</span>
+            <span>GREEN: {{ flag_summary.green_count }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Stats Grid -->
+    <div class="summary-stats">
+        <div class="stat">
+            <div class="stat-value">{{ flag_summary.compliance_score }}</div>
+            <div class="stat-label">Compliance Score</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ flag_summary.total_flags }}</div>
+            <div class="stat-label">Total Flags</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--color-red);">{{ flag_summary.red_count }}</div>
+            <div class="stat-label">RED</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--color-yellow);">{{ flag_summary.yellow_count }}</div>
+            <div class="stat-label">YELLOW</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--color-green);">{{ flag_summary.green_count }}</div>
+            <div class="stat-label">GREEN</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Filters</h2>
+    <form method="GET" action="{{ url_for('review.review_audit', audit_id=audit.external_id) }}" class="filters">
+        <div class="filter-group">
+            <label for="severity">Severity</label>
+            <select name="severity" id="severity" onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="RED" {% if severity_filter == 'RED' %}selected{% endif %}>RED</option>
+                <option value="YELLOW" {% if severity_filter == 'YELLOW' %}selected{% endif %}>YELLOW</option>
+                <option value="GREEN" {% if severity_filter == 'GREEN' %}selected{% endif %}>GREEN</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="regulation">Regulation</label>
+            <select name="regulation" id="regulation" onchange="this.form.submit()">
+                <option value="">All</option>
+                {% for reg in regulations %}
+                <option value="{{ reg }}" {% if regulation_filter == reg %}selected{% endif %}>{{ reg }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group" style="align-self: flex-end;">
+            <a href="{{ url_for('review.review_audit', audit_id=audit.external_id) }}" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Compliance Flags ({{ flags|length }})</h2>
+    {% if flags %}
+    <div class="flags-list">
+        {% for flag in flags %}
+        <div class="flag-card" 
+             x-data="{ expanded: false }"
+             style="border-left: 4px solid {% if flag.flag_type == 'RED' %}var(--color-red){% elif flag.flag_type == 'YELLOW' %}var(--color-yellow){% else %}var(--color-green){% endif %}; 
+                    margin-bottom: var(--spacing-4); 
+                    padding: var(--spacing-4); 
+                    background: var(--color-gray-50); 
+                    border-radius: 0.5rem;">
+            <div class="flag-header" 
+                 style="display: flex; justify-content: space-between; align-items: start; cursor: pointer;"
+                 @click="expanded = !expanded">
+                <div style="flex: 1;">
+                    <div style="display: flex; gap: var(--spacing-2); align-items: center; margin-bottom: var(--spacing-2);">
+                        <span class="badge badge-{{ flag.flag_type.lower() }}">{{ flag.flag_type }}</span>
+                        <span style="font-weight: var(--font-weight-semibold); color: var(--color-gray-800);">
+                            Score: {{ flag.severity_score }}
+                        </span>
+                        <span style="color: var(--color-gray-600); font-size: var(--font-size-sm);">
+                            Chunk: <code>{{ flag.chunk_id }}</code>
+                        </span>
+                    </div>
+                    <p style="color: var(--color-gray-800); margin: 0;">
+                        {{ flag.findings[:200] }}{% if flag.findings|length > 200 %}...{% endif %}
+                    </p>
+                    {% if flag_citations[flag.id] %}
+                    <div class="citations" style="margin-top: var(--spacing-2);">
+                        {% for citation in flag_citations[flag.id] %}
+                        <span class="citation">{{ citation.reference }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="margin-left: var(--spacing-4);">
+                    <span x-show="!expanded" style="font-size: var(--font-size-xl); color: var(--color-gray-600);">▼</span>
+                    <span x-show="expanded" style="font-size: var(--font-size-xl); color: var(--color-gray-600);">▲</span>
+                </div>
+            </div>
+            
+            <div x-show="expanded" 
+                 x-collapse
+                 style="margin-top: var(--spacing-4); padding-top: var(--spacing-4); border-top: 1px solid var(--color-gray-200);">
+                <div style="background: white; padding: var(--spacing-4); border-radius: 0.375rem;">
+                    <h4 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-3); color: var(--color-primary);">Findings</h4>
+                    <p style="color: var(--color-gray-800); line-height: 1.6; margin-bottom: var(--spacing-4);">{{ flag.findings }}</p>
+                    
+                    {% if flag.gaps %}
+                    <h4 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-3); margin-top: var(--spacing-4); color: var(--color-primary);">Gaps Identified</h4>
+                    <ul style="margin-left: var(--spacing-6); margin-bottom: var(--spacing-4);">
+                        {% for gap in flag.gaps %}
+                        <li style="color: var(--color-gray-800); margin-bottom: var(--spacing-2);">{{ gap }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    
+                    {% if flag.recommendations %}
+                    <h4 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-3); margin-top: var(--spacing-4); color: var(--color-primary);">Recommendations</h4>
+                    <ul style="margin-left: var(--spacing-6); margin-bottom: var(--spacing-4);">
+                        {% for rec in flag.recommendations %}
+                        <li style="color: var(--color-gray-800); margin-bottom: var(--spacing-2);">{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    
+                    {% if flag_citations[flag.id] %}
+                    <h4 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-3); margin-top: var(--spacing-4); color: var(--color-primary);">Citations</h4>
+                    <div class="citations">
+                        {% for citation in flag_citations[flag.id] %}
+                        <span class="citation" style="margin-right: var(--spacing-2); margin-bottom: var(--spacing-2); display: inline-block;">
+                            <strong>{{ citation.citation_type }}:</strong> {{ citation.reference }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if flag_contexts[flag.id] %}
+                    <div style="margin-top: var(--spacing-4); padding-top: var(--spacing-4); border-top: 1px solid var(--color-gray-200);">
+                        <div x-data="{ contextExpanded: false }">
+                            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: var(--spacing-2);"
+                                 @click="contextExpanded = !contextExpanded">
+                                <h4 style="font-size: var(--font-size-lg); margin: 0; color: var(--color-primary);">
+                                    Context Used for Analysis
+                                </h4>
+                                <span x-show="!contextExpanded" style="font-size: var(--font-size-xl); color: var(--color-gray-600);">▼</span>
+                                <span x-show="contextExpanded" style="font-size: var(--font-size-xl); color: var(--color-gray-600);">▲</span>
+                            </div>
+                            
+                            <div x-show="contextExpanded" 
+                                 x-collapse
+                                 style="background: var(--color-gray-50); padding: var(--spacing-4); border-radius: 0.375rem; margin-top: var(--spacing-3);">
+                                
+                                <div style="margin-bottom: var(--spacing-4);">
+                                    <h5 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-2); color: var(--color-gray-800);">Context Summary</h5>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-3); font-size: var(--font-size-sm);">
+                                        <div>
+                                            <span style="color: var(--color-gray-600);">Total Tokens:</span>
+                                            <strong style="color: var(--color-primary); margin-left: var(--spacing-1);">{{ flag_contexts[flag.id].total_tokens }}</strong>
+                                        </div>
+                                        <div>
+                                            <span style="color: var(--color-gray-600);">Manual Chunks:</span>
+                                            <strong style="color: var(--color-primary); margin-left: var(--spacing-1);">{{ flag_contexts[flag.id].manual_neighbors_count }}</strong>
+                                        </div>
+                                        <div>
+                                            <span style="color: var(--color-gray-600);">Regulations:</span>
+                                            <strong style="color: var(--color-primary); margin-left: var(--spacing-1);">{{ flag_contexts[flag.id].regulation_slices_count }}</strong>
+                                        </div>
+                                        <div>
+                                            <span style="color: var(--color-gray-600);">Guidance:</span>
+                                            <strong style="color: var(--color-primary); margin-left: var(--spacing-1);">{{ flag_contexts[flag.id].guidance_slices_count }}</strong>
+                                        </div>
+                                        <div>
+                                            <span style="color: var(--color-gray-600);">Evidence:</span>
+                                            <strong style="color: var(--color-primary); margin-left: var(--spacing-1);">{{ flag_contexts[flag.id].evidence_slices_count }}</strong>
+                                        </div>
+                                        {% if flag_contexts[flag.id].truncated %}
+                                        <div style="color: var(--color-yellow); font-weight: var(--font-weight-semibold);">
+                                            ⚠️ Context Truncated
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                {% if flag_contexts[flag.id].manual_neighbors %}
+                                <div style="margin-bottom: var(--spacing-4);">
+                                    <h5 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-2); color: var(--color-gray-800);">
+                                        Manual Context ({{ flag_contexts[flag.id].manual_neighbors_count }} chunks)
+                                    </h5>
+                                    <div style="max-height: 300px; overflow-y: auto; background: white; padding: var(--spacing-3); border-radius: 0.25rem; border: 1px solid var(--color-gray-200);">
+                                        {% for neighbor in flag_contexts[flag.id].manual_neighbors %}
+                                        <div style="margin-bottom: var(--spacing-3); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-gray-200); {% if loop.last %}border-bottom: none;{% endif %}">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-1);">
+                                                <strong style="color: var(--color-primary); font-size: var(--font-size-sm);">{{ neighbor.label }}</strong>
+                                                {% if neighbor.score is not none %}
+                                                <span style="color: var(--color-gray-600); font-size: var(--font-size-xs);">Similarity: {{ "%.1f"|format(neighbor.score * 100) }}%</span>
+                                                {% endif %}
+                                            </div>
+                                            <div style="color: var(--color-gray-700); font-size: var(--font-size-sm); line-height: 1.5; white-space: pre-wrap;">{{ neighbor.content_preview }}</div>
+                                            {% if neighbor.metadata.get('reference_type') %}
+                                            <div style="margin-top: var(--spacing-1);">
+                                                <span style="background: var(--color-gray-200); padding: 2px 6px; border-radius: 3px; font-size: var(--font-size-xs); color: var(--color-gray-700);">
+                                                    {{ neighbor.metadata.reference_type }}
+                                                </span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if flag_contexts[flag.id].regulation_slices %}
+                                <div style="margin-bottom: var(--spacing-4);">
+                                    <h5 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-2); color: var(--color-gray-800);">
+                                        Regulation Context ({{ flag_contexts[flag.id].regulation_slices_count }} chunks)
+                                    </h5>
+                                    <div style="max-height: 300px; overflow-y: auto; background: white; padding: var(--spacing-3); border-radius: 0.25rem; border: 1px solid var(--color-gray-200);">
+                                        {% for reg in flag_contexts[flag.id].regulation_slices %}
+                                        <div style="margin-bottom: var(--spacing-3); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-gray-200); {% if loop.last %}border-bottom: none;{% endif %}">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-1);">
+                                                <strong style="color: var(--color-primary); font-size: var(--font-size-sm);">{{ reg.label }}</strong>
+                                                {% if reg.score is not none %}
+                                                <span style="color: var(--color-gray-600); font-size: var(--font-size-xs);">Similarity: {{ "%.1f"|format(reg.score * 100) }}%</span>
+                                                {% endif %}
+                                            </div>
+                                            <div style="color: var(--color-gray-700); font-size: var(--font-size-sm); line-height: 1.5; white-space: pre-wrap;">{{ reg.content_preview }}</div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if flag_contexts[flag.id].guidance_slices %}
+                                <div style="margin-bottom: var(--spacing-4);">
+                                    <h5 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-2); color: var(--color-gray-800);">
+                                        Guidance Context ({{ flag_contexts[flag.id].guidance_slices_count }} chunks)
+                                    </h5>
+                                    <div style="max-height: 300px; overflow-y: auto; background: white; padding: var(--spacing-3); border-radius: 0.25rem; border: 1px solid var(--color-gray-200);">
+                                        {% for guidance in flag_contexts[flag.id].guidance_slices %}
+                                        <div style="margin-bottom: var(--spacing-3); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-gray-200); {% if loop.last %}border-bottom: none;{% endif %}">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-1);">
+                                                <strong style="color: var(--color-primary); font-size: var(--font-size-sm);">{{ guidance.label }}</strong>
+                                                {% if guidance.score is not none %}
+                                                <span style="color: var(--color-gray-600); font-size: var(--font-size-xs);">Similarity: {{ "%.1f"|format(guidance.score * 100) }}%</span>
+                                                {% endif %}
+                                            </div>
+                                            <div style="color: var(--color-gray-700); font-size: var(--font-size-sm); line-height: 1.5; white-space: pre-wrap;">{{ guidance.content_preview }}</div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if flag_contexts[flag.id].evidence_slices %}
+                                <div>
+                                    <h5 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-2); color: var(--color-gray-800);">
+                                        Evidence/Litigation Context ({{ flag_contexts[flag.id].evidence_slices_count }} chunks)
+                                    </h5>
+                                    <div style="max-height: 300px; overflow-y: auto; background: white; padding: var(--spacing-3); border-radius: 0.25rem; border: 1px solid var(--color-gray-200);">
+                                        {% for evidence in flag_contexts[flag.id].evidence_slices %}
+                                        <div style="margin-bottom: var(--spacing-3); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-gray-200); {% if loop.last %}border-bottom: none;{% endif %}">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-1);">
+                                                <strong style="color: var(--color-primary); font-size: var(--font-size-sm);">{{ evidence.label }}</strong>
+                                                {% if evidence.score is not none %}
+                                                <span style="color: var(--color-gray-600); font-size: var(--font-size-xs);">Similarity: {{ "%.1f"|format(evidence.score * 100) }}%</span>
+                                                {% endif %}
+                                            </div>
+                                            <div style="color: var(--color-gray-700); font-size: var(--font-size-sm); line-height: 1.5; white-space: pre-wrap;">{{ evidence.content_preview }}</div>
+                                            {% if evidence.metadata.get('reference_type') %}
+                                            <div style="margin-top: var(--spacing-1);">
+                                                <span style="background: var(--color-gray-200); padding: 2px 6px; border-radius: 3px; font-size: var(--font-size-xs); color: var(--color-gray-700);">
+                                                    {{ evidence.metadata.reference_type }}
+                                                </span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3>No flags found</h3>
+        <p>{% if severity_filter or regulation_filter %}No flags match the selected filters.{% else %}This audit has no compliance flags.{% endif %}</p>
+        {% if severity_filter or regulation_filter %}
+        <a href="{{ url_for('review.review_audit', audit_id=audit.external_id) }}" class="btn btn-primary" style="margin-top: var(--spacing-4);">Clear Filters</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% if questions %}
+<div class="card">
+    <h2>Auditor Questions ({{ questions|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Priority</th>
+                <th>Regulation</th>
+                <th>Question</th>
+                <th>Rationale</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for question in questions %}
+            <tr>
+                <td>{{ question.priority }}</td>
+                <td><code>{{ question.regulation_reference }}</code></td>
+                <td>{{ question.question_text }}</td>
+                <td>{{ question.rationale or 'N/A' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dynamic progress updates for running audits
+    {% if audit.status == 'running' or audit.status == 'queued' %}
+    (function() {
+        const auditId = '{{ audit.external_id }}';
+        const statusEndpoint = `/api/audits/${auditId}/status`;
+        let pollInterval = null;
+        let lastChunkCompleted = {{ audit.chunk_completed }};
+        
+        function updateProgress(data) {
+            // Update chunk progress
+            const chunkCompletedEl = document.getElementById('chunk-completed');
+            const chunkTotalEl = document.getElementById('chunk-total');
+            const progressPercentEl = document.getElementById('progress-percent');
+            const progressFillEl = document.getElementById('progress-fill');
+            const currentActivityEl = document.getElementById('current-activity');
+            const etaDisplayEl = document.getElementById('eta-display');
+            const statusBadgeEl = document.getElementById('status-badge');
+            const statusChunkInfoEl = document.getElementById('status-chunk-info');
+            
+            if (chunkCompletedEl) chunkCompletedEl.textContent = data.chunk_completed;
+            if (chunkTotalEl) chunkTotalEl.textContent = data.chunk_total;
+            if (progressPercentEl) progressPercentEl.textContent = `${data.progress_percent}%`;
+            if (progressFillEl) {
+                progressFillEl.style.width = `${data.progress_percent}%`;
+            }
+            
+            // Update status badge
+            if (statusBadgeEl) {
+                statusBadgeEl.textContent = data.status.toUpperCase() + (data.is_draft ? ' (DRAFT)' : '');
+                // Update badge color
+                statusBadgeEl.className = 'badge badge-' + 
+                    (data.status === 'completed' ? 'green' : 
+                     data.status === 'running' ? 'yellow' : 
+                     data.status === 'failed' ? 'red' : 'yellow');
+            }
+            
+            // Update chunk info in status section
+            if (statusChunkInfoEl) {
+                statusChunkInfoEl.textContent = `${data.chunk_completed} / ${data.chunk_total}`;
+            }
+            
+            // Update current activity
+            if (currentActivityEl) {
+                currentActivityEl.textContent = data.current_activity || 'Processing...';
+            }
+            
+            // Update ETA
+            if (etaDisplayEl) {
+                if (data.eta_formatted) {
+                    etaDisplayEl.textContent = `ETA: ${data.eta_formatted}`;
+                    etaDisplayEl.style.display = 'inline';
+                } else {
+                    etaDisplayEl.style.display = 'none';
+                }
+            }
+            
+            // Check if status changed to completed or failed
+            if (data.status === 'completed' || data.status === 'failed') {
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
+                
+                // Hide spinner
+                const spinner = document.getElementById('status-spinner');
+                if (spinner) spinner.style.display = 'none';
+                
+                // Update activity message
+                if (currentActivityEl) {
+                    if (data.status === 'completed') {
+                        currentActivityEl.textContent = '✓ Audit completed successfully';
+                        currentActivityEl.style.color = 'var(--color-green)';
+                    } else {
+                        currentActivityEl.textContent = `✗ Audit failed: ${data.current_activity || 'Unknown error'}`;
+                        currentActivityEl.style.color = 'var(--color-red)';
+                    }
+                }
+                
+                // Update completed time if available
+                if (data.status === 'completed' && data.completed_at) {
+                    const completedTimeEl = document.getElementById('completed-time');
+                    if (completedTimeEl) {
+                        const completedDate = new Date(data.completed_at);
+                        completedTimeEl.textContent = completedDate.toLocaleString();
+                    }
+                }
+                
+                // Reload page after a short delay to show final results
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+            
+            // Show visual feedback when a new chunk is processed
+            if (data.chunk_completed > lastChunkCompleted) {
+                lastChunkCompleted = data.chunk_completed;
+                // Add a subtle pulse animation to the progress bar
+                if (progressFillEl) {
+                    progressFillEl.style.transition = 'width 0.5s ease, box-shadow 0.3s ease';
+                    progressFillEl.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.5)';
+                    setTimeout(() => {
+                        if (progressFillEl) {
+                            progressFillEl.style.boxShadow = '';
+                        }
+                    }, 500);
+                }
+            }
+        }
+        
+        function pollStatus() {
+            fetch(statusEndpoint)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    updateProgress(data);
+                })
+                .catch(error => {
+                    console.error('Error polling audit status:', error);
+                    // Continue polling even on error
+                });
+        }
+        
+        // Start polling immediately, then every 2 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            pollStatus();
+            pollInterval = setInterval(pollStatus, 2000);
+        });
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+        });
+    })();
+    {% endif %}
+    
+    // Resume audit functionality
+    function resumeAudit() {
+        const auditId = '{{ audit.external_id }}';
+        const resumeBtn = document.getElementById('resume-btn');
+        
+        if (!resumeBtn) return;
+        
+        // Disable button and show loading state
+        resumeBtn.disabled = true;
+        resumeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Resuming...';
+        
+        fetch(`/api/audits/${auditId}/resume`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Show success message
+            const message = document.createElement('div');
+            message.className = 'alert alert-success';
+            message.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; padding: var(--spacing-3); background: var(--color-green); color: white; border-radius: 0.375rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            message.textContent = `Audit resumed! Processing ${data.remaining} remaining chunks...`;
+            document.body.appendChild(message);
+            
+            // Reload page after a short delay to show updated status
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        })
+        .catch(error => {
+            console.error('Error resuming audit:', error);
+            
+            // Show error message
+            const message = document.createElement('div');
+            message.className = 'alert alert-error';
+            message.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; padding: var(--spacing-3); background: var(--color-red); color: white; border-radius: 0.375rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            message.textContent = `Failed to resume audit: ${error.message}`;
+            document.body.appendChild(message);
+            
+            // Re-enable button
+            resumeBtn.disabled = false;
+            resumeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Resume Audit';
+            
+            // Remove error message after 5 seconds
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.parentNode.removeChild(message);
+                }
+            }, 5000);
+        });
+    }
+    
+    // Add CSS for spinner animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Generate Final Report functionality
+    function generateFinalReport() {
+        const auditId = '{{ audit.external_id }}';
+        const reportBtn = document.getElementById('generate-report-btn');
+        
+        if (!reportBtn) return;
+        
+        // Disable button and show loading state
+        reportBtn.disabled = true;
+        const originalHTML = reportBtn.innerHTML;
+        reportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Generating...';
+        
+        fetch(`/review/${auditId}/final-report`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Show report in a modal
+            showFinalReportModal(data);
+            
+            // Re-enable button
+            reportBtn.disabled = false;
+            reportBtn.innerHTML = originalHTML;
+        })
+        .catch(error => {
+            console.error('Error generating final report:', error);
+            
+            // Show error message
+            const message = document.createElement('div');
+            message.className = 'alert alert-error';
+            message.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; padding: var(--spacing-3); background: var(--color-red); color: white; border-radius: 0.375rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            message.textContent = `Failed to generate report: ${error.message}`;
+            document.body.appendChild(message);
+            
+            // Re-enable button
+            reportBtn.disabled = false;
+            reportBtn.innerHTML = originalHTML;
+            
+            // Remove error message after 5 seconds
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.parentNode.removeChild(message);
+                }
+            }, 5000);
+        });
+    }
+    
+    function showFinalReportModal(reportData) {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'report-modal-overlay';
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: var(--spacing-4);';
+        overlay.onclick = function(e) {
+            if (e.target === overlay) {
+                closeReportModal();
+            }
+        };
+        
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.style.cssText = 'background: white; border-radius: 0.5rem; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); width: 100%;';
+        
+        modal.innerHTML = `
+            <div style="padding: var(--spacing-6);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-4);">
+                    <h2 style="margin: 0; color: var(--color-primary);">Final Compliance Report</h2>
+                    <button onclick="closeReportModal()" style="background: none; border: none; font-size: var(--font-size-2xl); color: var(--color-gray-600); cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
+                </div>
+                
+                <div style="margin-bottom: var(--spacing-6);">
+                    <h3 style="color: var(--color-primary); margin-bottom: var(--spacing-2);">Executive Summary</h3>
+                    <div style="background: var(--color-gray-50); padding: var(--spacing-4); border-radius: 0.375rem; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(reportData.executive_summary)}</div>
+                </div>
+                
+                ${reportData.critical_issues.length > 0 ? `
+                <div style="margin-bottom: var(--spacing-6);">
+                    <h3 style="color: var(--color-red); margin-bottom: var(--spacing-3);">Critical Issues (${reportData.critical_issues.length})</h3>
+                    ${reportData.critical_issues.map((issue, idx) => `
+                        <div style="background: var(--color-red-light); border-left: 4px solid var(--color-red); padding: var(--spacing-4); margin-bottom: var(--spacing-3); border-radius: 0.25rem;">
+                            <h4 style="margin-top: 0; margin-bottom: var(--spacing-2); color: var(--color-red);">${idx + 1}. ${escapeHtml(issue.title || 'Critical Issue')}</h4>
+                            <p style="margin-bottom: var(--spacing-2); line-height: 1.6;">${escapeHtml(issue.description || '')}</p>
+                            ${issue.regulatory_basis && issue.regulatory_basis.length > 0 ? `
+                                <p style="margin-bottom: var(--spacing-2);"><strong>Regulatory Basis:</strong> ${escapeHtml(issue.regulatory_basis.join(', '))}</p>
+                            ` : ''}
+                            ${issue.recommendations && issue.recommendations.length > 0 ? `
+                                <div style="margin-top: var(--spacing-2);">
+                                    <strong>Recommendations:</strong>
+                                    <ul style="margin-top: var(--spacing-1); margin-left: var(--spacing-6);">
+                                        ${issue.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                ${reportData.warnings.length > 0 ? `
+                <div style="margin-bottom: var(--spacing-6);">
+                    <h3 style="color: var(--color-yellow); margin-bottom: var(--spacing-3);">Warnings (${reportData.warnings.length})</h3>
+                    ${reportData.warnings.map((warning, idx) => `
+                        <div style="background: var(--color-yellow-light); border-left: 4px solid var(--color-yellow); padding: var(--spacing-4); margin-bottom: var(--spacing-3); border-radius: 0.25rem;">
+                            <h4 style="margin-top: 0; margin-bottom: var(--spacing-2); color: #856404;">${idx + 1}. ${escapeHtml(warning.title || 'Warning')}</h4>
+                            <p style="margin-bottom: var(--spacing-2); line-height: 1.6;">${escapeHtml(warning.description || '')}</p>
+                            ${warning.recommendations && warning.recommendations.length > 0 ? `
+                                <div style="margin-top: var(--spacing-2);">
+                                    <strong>Recommendations:</strong>
+                                    <ul style="margin-top: var(--spacing-1); margin-left: var(--spacing-6);">
+                                        ${warning.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                ${reportData.recommendations.length > 0 ? `
+                <div style="margin-bottom: var(--spacing-6);">
+                    <h3 style="color: var(--color-primary); margin-bottom: var(--spacing-3);">Prioritized Recommendations</h3>
+                    <ol style="margin-left: var(--spacing-6); line-height: 1.8;">
+                        ${reportData.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
+                    </ol>
+                </div>
+                ` : ''}
+                
+                <div style="margin-bottom: var(--spacing-4);">
+                    <h3 style="color: var(--color-primary); margin-bottom: var(--spacing-2);">Overall Assessment</h3>
+                    <div style="background: var(--color-gray-50); padding: var(--spacing-4); border-radius: 0.375rem; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(reportData.overall_assessment)}</div>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-2); justify-content: flex-end; margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-gray-200);">
+                    <button onclick="closeReportModal()" class="btn btn-secondary">Close</button>
+                    <button onclick="downloadReport()" class="btn btn-primary">Download as JSON</button>
+                </div>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Store report data for download
+        window.currentReportData = reportData;
+    }
+    
+    function closeReportModal() {
+        const overlay = document.getElementById('report-modal-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        window.currentReportData = null;
+    }
+    
+    function downloadReport() {
+        if (!window.currentReportData) return;
+        
+        const dataStr = JSON.stringify(window.currentReportData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `final_report_${window.currentReportData.external_id}_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeReportModal();
+        }
+    });
+</script>
+{% endblock %}
+

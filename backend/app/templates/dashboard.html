@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Dashboard - AI Auditing System{% endblock %}
+
+{% block header_title %}Audit Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-6);">
+    <h1 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-primary);">Audits</h1>
+    <div>
+        <a href="/documents/upload" class="btn btn-primary">Upload Document</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card">
+    <h2>Filters</h2>
+    <form method="GET" action="/dashboard" class="filters">
+        <div class="filter-group">
+            <label for="status">Status</label>
+            <select name="status" id="status" onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="queued" {% if status_filter == 'queued' %}selected{% endif %}>Queued</option>
+                <option value="running" {% if status_filter == 'running' %}selected{% endif %}>Running</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="is_draft">Type</label>
+            <select name="is_draft" id="is_draft" onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="false" {% if is_draft == 'false' %}selected{% endif %}>Full Audit</option>
+                <option value="true" {% if is_draft == 'true' %}selected{% endif %}>Draft</option>
+            </select>
+        </div>
+        <div class="filter-group" style="align-self: flex-end;">
+            <a href="/dashboard" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+<!-- Audit List -->
+<div id="audits-container">
+{% if audits %}
+<div class="audit-list">
+    {% for item in audits %}
+    {% set audit = item.audit %}
+    {% set document = item.document %}
+    {% set flag_summary = item.flag_summary %}
+    <div class="card audit-card" style="cursor: pointer;" onclick="window.location.href='/review/{{ audit.external_id }}'">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-4);">
+            <div>
+                <h3 style="font-size: var(--font-size-xl); margin-bottom: var(--spacing-2);">
+                    {{ audit.external_id }}
+                    {% if audit.is_draft %}<span class="badge badge-yellow">DRAFT</span>{% endif %}
+                </h3>
+                {% if document %}
+                <p style="color: var(--color-gray-600); margin-bottom: var(--spacing-2);">
+                    <strong>Document:</strong> {{ document.original_filename }}
+                </p>
+                {% endif %}
+                <p style="color: var(--color-gray-600); font-size: var(--font-size-sm);">
+                    Created: {{ audit.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <span class="badge badge-{{ 'green' if audit.status == 'completed' else 'yellow' if audit.status == 'running' else 'red' if audit.status == 'failed' else 'yellow' }}">
+                    {{ audit.status.upper() }}
+                </span>
+            </div>
+        </div>
+        
+        {% if audit.status == 'running' or audit.status == 'queued' %}
+        <div class="progress-card" style="margin-top: var(--spacing-4);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-2);">
+                <span style="font-size: var(--font-size-sm); color: var(--color-gray-600);">
+                    Processing: {{ audit.chunk_completed }} / {{ audit.chunk_total }} chunks
+                </span>
+                {% if audit.chunk_total > 0 %}
+                <span style="font-size: var(--font-size-sm); color: var(--color-gray-600);">
+                    {{ ((audit.chunk_completed / audit.chunk_total) * 100)|round(1) }}%
+                </span>
+                {% endif %}
+            </div>
+            {% if audit.chunk_total > 0 %}
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ ((audit.chunk_completed / audit.chunk_total) * 100)|round(1) }}%"></div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if audit.status == 'completed' and flag_summary %}
+        <div class="summary-stats" style="margin-top: var(--spacing-4);">
+            <div class="stat">
+                <div class="stat-value" style="font-size: var(--font-size-2xl);">{{ flag_summary.compliance_score }}</div>
+                <div class="stat-label">Compliance Score</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="font-size: var(--font-size-2xl);">{{ flag_summary.total_flags }}</div>
+                <div class="stat-label">Total Flags</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: var(--color-red); font-size: var(--font-size-2xl);">{{ flag_summary.red_count }}</div>
+                <div class="stat-label">RED</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: var(--color-yellow); font-size: var(--font-size-2xl);">{{ flag_summary.yellow_count }}</div>
+                <div class="stat-label">YELLOW</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: var(--color-green); font-size: var(--font-size-2xl);">{{ flag_summary.green_count }}</div>
+                <div class="stat-label">GREEN</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: var(--spacing-4); display: flex; gap: var(--spacing-2);">
+            <a href="/review/{{ audit.external_id }}" class="btn btn-primary" onclick="event.stopPropagation();">View Details</a>
+            {% if audit.status == 'completed' %}
+            <a href="/api/audits/{{ audit.external_id }}" class="btn btn-secondary" onclick="event.stopPropagation();">API JSON</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    <h3>No audits found</h3>
+    <p>Get started by uploading a document and creating your first audit.</p>
+    <a href="/documents/upload" class="btn btn-primary" style="margin-top: var(--spacing-4);">Upload Document</a>
+</div>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh for running audits
+    document.addEventListener('DOMContentLoaded', function() {
+        const runningAudits = document.querySelectorAll('.audit-card:has(.badge-yellow)');
+        if (runningAudits.length > 0) {
+            // Refresh page every 5 seconds if there are running audits
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
+        }
+    });
+</script>
+{% endblock %}
+

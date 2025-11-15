@@ -1,0 +1,6 @@
+This directory contains Alembic migration scripts for the AI Auditing backend.
+
+Use the helpers provided in the `Makefile` (e.g., `make db-upgrade`) to apply
+migrations locally. Auto-generated revisions should live under the `versions/`
+folder, following the naming convention `<timestamp>_<slug>.py`.
+
