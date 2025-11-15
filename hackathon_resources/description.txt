@@ -1,0 +1,25 @@
+Resources
+
+Mentors: certifying & auditing specialists from Traficom Aviation - Antti Uutinen, Martti Salminen, Ilona Jylhä, Jarno Ilme, Jaana Mäkiniemi, and Ville Räisänen. Traficom Aviation team will provide background information, process diagrams, practical insights, and highlight critical pitfalls.
+
+    AI anonyymi MOE.docx
+
+EU Regulation, regulating aircraft maintenance organization, EU1321/2014 (Hard Law) and AMC/GM (Soft Law) materials can be found from here: Specially Part-145.
+
+    www.easa.europa.eu/en/regulations/continuing-airworthiness
+
+Easy Access is unofficial publication containing EU Regulation EU1321/2014 (Hard Law) and AMC/GM (Soft Law). This is consolidated version of all regulatory + amc/gm changes.
+
+    https://www.easa.europa.eu/en/document-library/easy-access-rules/easy-access-rules-continuing-airworthiness
+
+Easy Access Document can be used as reference document when evaluating if MOE full fill all requirements.
+
+EASA has published MOE guide for Foreign Part-145 approvals. Those are Part-145 organisations located outside the EU which are not subject to a bilateral agreement. This can be used as well for structure of MOE…
+
+    https://www.easa.europa.eu/en/downloads/48697/en
+
+Other publicly available MOE:s can be used as well.
+
+    https://airxjetsupport.aero/wp-content/uploads/2020/02/axjs-145-moe-iss-4-amdt-0-02-jan-20.pdf
+
+EU Regulation, regulating aircraft maintenance organization, EU1321/2014 (Hard Law) and AMC/GM (Soft Law) are setting the requirements for Part-145 aircraft maintenance organization. Organisation have create MOE manual which should describe their management system and all the processes. Organization have to implement all regulatory requirements to their MOE. MOE have to be inspected by authority. Authority have to check that MOE is compliant with regulation, AMC and GM. Job is time consuming. If AI could help to determine whether the requirements have been implemented or not it would make job more easier and faster.

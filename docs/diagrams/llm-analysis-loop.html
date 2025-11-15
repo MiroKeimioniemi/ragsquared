@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Analysis Loop</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .mermaid {
+            max-width: 100%;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="mermaid">
+flowchart TD
+    Start([Chunk + Context Bundle]) --> BuildPrompt[Build Analysis Prompt]
+    BuildPrompt --> LLMCall[Call OpenRouter LLM]
+    LLMCall --> ParseJSON[Parse JSON Response]
+    ParseJSON --> Validate{Valid JSON?}
+    Validate -->|No| Retry[Retry with Error]
+    Retry --> LLMCall
+    Validate -->|Yes| ExtractFlag[Extract Flag & Findings]
+    ExtractFlag --> CheckContext{needs_additional_context?}
+    CheckContext -->|No| Finalize[Finalize Analysis]
+    CheckContext -->|Yes| CheckAttempts{Attempts < Max?}
+    CheckAttempts -->|No| Finalize
+    CheckAttempts -->|Yes| ExtractQuery[Extract context_query]
+    ExtractQuery --> CheckQuery{Query Provided?}
+    CheckQuery -->|No| Finalize
+    CheckQuery -->|Yes| RefineRAG[Refined RAG Search]
+    RefineRAG --> ExpandContext[Expand Context Bundle]
+    ExpandContext --> BuildPrompt
+    Finalize --> Score[Calculate Severity Score]
+    Score --> Citations[Extract Citations]
+    Citations --> Recommendations[Generate Recommendations]
+    Recommendations --> Result[Analysis Result]
+    Result --> Store[Store in Database]
+    Store --> End([Complete])
+    
+    style Start fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style End fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style LLMCall fill:#fef2f2,stroke:#dc2626,stroke-width:2px
+    style RefineRAG fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style Result fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    </div>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#ffffff',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#6b7280',
+                background: '#ffffff',
+                mainBkg: '#ffffff',
+                textColor: '#1f2937'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20,
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursive RAG</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .mermaid {
+            max-width: 100%;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="mermaid">
+flowchart TB
+    Start([Focus Chunk]) --> BaseRAG[Base RAG Context]
+    BaseRAG --> ExtractRefs[Extract Section References]
+    ExtractRefs --> RefQueue{Reference Queue}
+    RefQueue -->|Empty| BaseContext[Base Context Ready]
+    RefQueue -->|Has Refs| ProcessRef[Process Reference]
+    ProcessRef --> CheckDepth{Depth < Max?}
+    CheckDepth -->|No| SkipRef[Skip Reference]
+    CheckDepth -->|Yes| RAGRef[RAG for Reference]
+    RAGRef --> ExtractRefs2[Extract References from Result]
+    ExtractRefs2 --> AddToQueue[Add to Queue]
+    AddToQueue --> RefQueue
+    SkipRef --> RefQueue
+    BaseContext --> FindLitigation[Find Related Litigation]
+    FindLitigation --> LitQueue{Litigation Queue}
+    LitQueue -->|Empty| FinalContext[Final Context Bundle]
+    LitQueue -->|Has Lit| ProcessLit[Process Litigation]
+    ProcessLit --> RAGLit[RAG for Litigation]
+    RAGLit --> ExtractLitRefs[Extract References]
+    ExtractLitRefs --> AddLitToQueue[Add to Queue]
+    AddLitToQueue --> LitQueue
+    FinalContext --> Bundle[Context Bundle]
+    Bundle --> TokenBudget[Apply Token Budget]
+    TokenBudget --> Truncate{Exceeds Budget?}
+    Truncate -->|Yes| Trim[Trim Low-Score Slices]
+    Truncate -->|No| Ready[Context Ready]
+    Trim --> Ready
+    
+    style Start fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style Ready fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style RAGRef fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style RAGLit fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style Bundle fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    </div>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#ffffff',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#6b7280',
+                background: '#ffffff',
+                mainBkg: '#ffffff',
+                textColor: '#1f2937'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20,
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>
+
+

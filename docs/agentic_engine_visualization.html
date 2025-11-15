@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic Engine Flowcharts - Junction25</title>
+    <title>Agentic Engine - Junction25</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         * {
@@ -13,155 +13,47 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-        }
-        
-        h1 {
-            color: #2d3748;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        
-        .subtitle {
-            text-align: center;
-            color: #718096;
-            margin-bottom: 40px;
-            font-size: 1.1em;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            padding: 40px 20px;
+            line-height: 1.5;
         }
         
         .diagram-section {
-            margin-bottom: 60px;
-            padding: 30px;
-            background: #f7fafc;
-            border-radius: 15px;
-            border-left: 5px solid #667eea;
+            margin-bottom: 80px;
+            page-break-inside: avoid;
         }
         
-        .diagram-section h2 {
-            color: #2d3748;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        
-        .diagram-section p {
-            color: #4a5568;
-            margin-bottom: 20px;
-            line-height: 1.6;
+        .diagram-section:last-child {
+            margin-bottom: 0;
         }
         
         .mermaid {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin: 20px 0;
-        }
-        
-        .legend {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 40px;
-            border: 2px solid #e2e8f0;
-        }
-        
-        .legend h3 {
-            color: #2d3748;
-            margin-bottom: 15px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .legend-color {
-            width: 30px;
-            height: 30px;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-        
-        .nav {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        
-        .nav a {
-            display: block;
-            color: #667eea;
-            text-decoration: none;
-            padding: 5px 0;
-            font-size: 0.9em;
-        }
-        
-        .nav a:hover {
-            text-decoration: underline;
+            background: transparent;
+            padding: 0;
+            margin: 0;
         }
         
         @media print {
             body {
-                background: white;
+                padding: 20px;
             }
-            .nav {
-                display: none;
+            .diagram-section {
+                margin-bottom: 60px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="nav">
-        <strong>Navigation</strong>
-        <a href="#overview">Overview</a>
-        <a href="#runner">Compliance Runner</a>
-        <a href="#recursive">Recursive RAG</a>
-        <a href="#context">Context Retrieval</a>
-        <a href="#analysis">LLM Analysis</a>
-        <a href="#flagging">Flag Generation</a>
-        <a href="#pipeline">Document Pipeline</a>
-        <a href="#e2e">End-to-End</a>
-        <a href="#components">Components</a>
-    </div>
-    
-    <div class="container">
-        <h1>🚀 Agentic Engine Flowcharts</h1>
-        <p class="subtitle">Visualizing the AI-Powered Compliance Auditing System</p>
-        
-        <div id="overview" class="diagram-section">
-            <h2>1. High-Level System Architecture</h2>
-            <p>This diagram shows the complete flow from document upload to final report generation.</p>
-            <div class="mermaid">
+    <div class="diagram-section">
+        <div class="mermaid">
 flowchart TB
     Start([Document Upload]) --> Extract[Document Extraction]
     Extract --> Chunk[Semantic Chunking]
     Chunk --> Embed[Generate Embeddings]
     Embed --> Index[Vector Store Indexing]
-    
     Index --> Queue[Queue Audit]
     Queue --> Runner[Compliance Runner]
-    
     Runner --> ProcessChunk{For Each Chunk}
     ProcessChunk --> BuildContext[Build RAG Context]
     BuildContext --> Analyze[LLM Analysis]
@@ -172,305 +64,153 @@ flowchart TB
     Store --> MoreChunks{More Chunks?}
     MoreChunks -->|Yes| ProcessChunk
     MoreChunks -->|No| Aggregate[Aggregate Results]
-    
     Aggregate --> Report[Generate Report]
-    Report --> Export[Export Markdown/PDF]
+    Report --> Export[Export Report]
     Export --> End([Complete])
     
-    style Start fill:#e1f5ff
-    style End fill:#d4edda
-    style Runner fill:#fff3cd
-    style Analyze fill:#f8d7da
-    style Report fill:#d1ecf1
-            </div>
+    style Start fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style End fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style Runner fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style Analyze fill:#fef2f2,stroke:#dc2626,stroke-width:2px
+    style Report fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
         </div>
-        
-        <div id="runner" class="diagram-section">
-            <h2>2. Compliance Runner - Chunk Processing Flow</h2>
-            <p>Detailed flow of how each chunk is processed through the compliance runner.</p>
-            <div class="mermaid">
+    </div>
+    
+    <div class="diagram-section">
+        <div class="mermaid">
 flowchart TD
-    Start([Start Audit]) --> Init[Initialize Runner]
-    Init --> GetChunks[Get Pending Chunks]
-    GetChunks --> Check{Chunks Available?}
-    Check -->|No| Complete([Audit Complete])
-    Check -->|Yes| SelectChunk[Select Next Chunk]
-    
-    SelectChunk --> BuildContext[Build RAG Context]
-    BuildContext --> ContextDetails[Context Details]
-    
-    ContextDetails --> ManualRAG[Retrieve Manual Neighbors]
-    ContextDetails --> RegRAG[Retrieve Regulations]
-    ContextDetails --> GuideRAG[Retrieve AMC/GM]
-    ContextDetails --> EvidenceRAG{Include Evidence?}
-    
+    Start([Start Audit]) --> BuildContext[Build RAG Context]
+    BuildContext --> ManualRAG[Retrieve Manual Neighbors]
+    BuildContext --> RegRAG[Retrieve Regulations]
+    BuildContext --> GuideRAG[Retrieve AMC/GM]
+    BuildContext --> EvidenceRAG[Retrieve Evidence]
     ManualRAG --> Combine[Combine Contexts]
     RegRAG --> Combine
     GuideRAG --> Combine
-    EvidenceRAG -->|Yes| Combine
-    EvidenceRAG -->|No| Combine
-    
+    EvidenceRAG --> Combine
     Combine --> LLMAnalysis[LLM Analysis]
-    LLMAnalysis --> Parse[Parse JSON Response]
-    Parse --> CheckRefine{Needs Additional Context?}
-    
-    CheckRefine -->|Yes| RefineQuery[Extract Context Query]
-    RefineQuery --> RefineRAG[Targeted RAG Search]
+    LLMAnalysis --> CheckRefine{Needs Additional Context?}
+    CheckRefine -->|Yes| RefineRAG[Targeted RAG Search]
     RefineRAG --> LLMAnalysis
-    
     CheckRefine -->|No| Score[Score & Flag]
-    Score --> StoreResult[Store Chunk Result]
-    StoreResult --> UpsertFlag[Upsert Flag]
-    UpsertFlag --> UpdateProgress[Update Progress]
-    UpdateProgress --> Commit[Commit to DB]
-    Commit --> Delay[Rate Limit Delay]
-    Delay --> More{More Chunks?}
+    Score --> StoreResult[Store Result]
+    StoreResult --> More{More Chunks?}
+    More -->|Yes| BuildContext
+    More -->|No| Complete([Audit Complete])
     
-    More -->|Yes| SelectChunk
-    More -->|No| Finalize[Finalize Audit]
-    Finalize --> RecordScore[Record Compliance Score]
-    RecordScore --> Complete
-    
-    style Start fill:#e1f5ff
-    style Complete fill:#d4edda
-    style LLMAnalysis fill:#f8d7da
-    style Score fill:#fff3cd
-    style BuildContext fill:#d1ecf1
-            </div>
+    style Start fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style Complete fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style LLMAnalysis fill:#fef2f2,stroke:#dc2626,stroke-width:2px
+    style Score fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style BuildContext fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
         </div>
-        
-        <div id="recursive" class="diagram-section">
-            <h2>3. Recursive RAG Context Building</h2>
-            <p>How the system recursively builds comprehensive context by following references and finding related litigation.</p>
-            <div class="mermaid">
+    </div>
+    
+    <div class="diagram-section">
+        <div class="mermaid">
 flowchart TB
     Start([Focus Chunk]) --> BaseRAG[Base RAG Context]
     BaseRAG --> ExtractRefs[Extract Section References]
-    
     ExtractRefs --> RefQueue{Reference Queue}
     RefQueue -->|Empty| BaseContext[Base Context Ready]
     RefQueue -->|Has Refs| ProcessRef[Process Reference]
-    
     ProcessRef --> CheckDepth{Depth < Max?}
     CheckDepth -->|No| SkipRef[Skip Reference]
     CheckDepth -->|Yes| RAGRef[RAG for Reference]
-    
     RAGRef --> ExtractRefs2[Extract References from Result]
     ExtractRefs2 --> AddToQueue[Add to Queue]
     AddToQueue --> RefQueue
-    
     SkipRef --> RefQueue
-    
     BaseContext --> FindLitigation[Find Related Litigation]
     FindLitigation --> LitQueue{Litigation Queue}
-    
     LitQueue -->|Empty| FinalContext[Final Context Bundle]
-    LitQueue -->|Has Lit| ProcessLit[Process Litigation Chunk]
-    
+    LitQueue -->|Has Lit| ProcessLit[Process Litigation]
     ProcessLit --> RAGLit[RAG for Litigation]
     RAGLit --> ExtractLitRefs[Extract References]
     ExtractLitRefs --> AddLitToQueue[Add to Queue]
     AddLitToQueue --> LitQueue
-    
-    FinalContext --> ManualSlices[Manual Neighbors]
-    FinalContext --> RegSlices[Regulation Slices]
-    FinalContext --> GuideSlices[Guidance Slices]
-    FinalContext --> EvidenceSlices[Evidence Slices]
-    FinalContext --> RefSlices[Referenced Sections]
-    FinalContext --> LitSlices[Litigation Slices]
-    
-    ManualSlices --> Bundle[Context Bundle]
-    RegSlices --> Bundle
-    GuideSlices --> Bundle
-    EvidenceSlices --> Bundle
-    RefSlices --> Bundle
-    LitSlices --> Bundle
-    
+    FinalContext --> Bundle[Context Bundle]
     Bundle --> TokenBudget[Apply Token Budget]
     TokenBudget --> Truncate{Exceeds Budget?}
     Truncate -->|Yes| Trim[Trim Low-Score Slices]
     Truncate -->|No| Ready[Context Ready]
     Trim --> Ready
     
-    style Start fill:#e1f5ff
-    style Ready fill:#d4edda
-    style RAGRef fill:#fff3cd
-    style RAGLit fill:#fff3cd
-    style Bundle fill:#d1ecf1
-            </div>
+    style Start fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style Ready fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style RAGRef fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style RAGLit fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style Bundle fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
         </div>
-        
-        <div id="context" class="diagram-section">
-            <h2>4. Context Retrieval Process</h2>
-            <p>How different types of context are retrieved from the vector store and combined.</p>
-            <div class="mermaid">
+    </div>
+    
+    <div class="diagram-section">
+        <div class="mermaid">
 flowchart LR
     Chunk[Focus Chunk] --> VectorSearch[Vector Search]
-    
     VectorSearch --> ManualSearch[Manual Collection]
     VectorSearch --> RegSearch[Regulation Collection]
     VectorSearch --> GuideSearch[AMC/GM Collection]
     VectorSearch --> EvidenceSearch[Evidence Collection]
-    
     ManualSearch --> ManualResults[Top-K Manual Neighbors]
     RegSearch --> RegResults[Top-K Regulations]
     GuideSearch --> GuideResults[Top-K Guidance]
     EvidenceSearch --> EvidenceResults[Top-K Evidence]
-    
-    ManualResults --> ContextSlice1[Context Slice]
-    RegResults --> ContextSlice2[Context Slice]
-    GuideResults --> ContextSlice3[Context Slice]
-    EvidenceResults --> ContextSlice4[Context Slice]
-    
-    ContextSlice1 --> Bundle[Context Bundle]
-    ContextSlice2 --> Bundle
-    ContextSlice3 --> Bundle
-    ContextSlice4 --> Bundle
-    
+    ManualResults --> Bundle[Context Bundle]
+    RegResults --> Bundle
+    GuideResults --> Bundle
+    EvidenceResults --> Bundle
     Bundle --> TokenCount[Calculate Tokens]
     TokenCount --> BudgetCheck{Within Budget?}
     BudgetCheck -->|No| SortByScore[Sort by Relevance Score]
     BudgetCheck -->|Yes| Ready[Ready for Analysis]
-    
     SortByScore --> TrimLow[Trim Low-Score Slices]
     TrimLow --> Ready
     
-    style Chunk fill:#e1f5ff
-    style Ready fill:#d4edda
-    style Bundle fill:#d1ecf1
-    style VectorSearch fill:#fff3cd
-            </div>
+    style Chunk fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style Ready fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style Bundle fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style VectorSearch fill:#fefce8,stroke:#ca8a04,stroke-width:2px
         </div>
-        
-        <div id="analysis" class="diagram-section">
-            <h2>5. LLM Analysis & Refinement Loop</h2>
-            <p>The iterative process of LLM analysis with optional context refinement.</p>
-            <div class="mermaid">
+    </div>
+    
+    <div class="diagram-section">
+        <div class="mermaid">
 flowchart TD
     Start([Chunk + Context Bundle]) --> BuildPrompt[Build Analysis Prompt]
     BuildPrompt --> LLMCall[Call OpenRouter LLM]
-    
     LLMCall --> ParseJSON[Parse JSON Response]
     ParseJSON --> Validate{Valid JSON?}
     Validate -->|No| Retry[Retry with Error]
     Retry --> LLMCall
-    
     Validate -->|Yes| ExtractFlag[Extract Flag & Findings]
     ExtractFlag --> CheckContext{needs_additional_context?}
-    
     CheckContext -->|No| Finalize[Finalize Analysis]
     CheckContext -->|Yes| CheckAttempts{Attempts < Max?}
-    
     CheckAttempts -->|No| Finalize
     CheckAttempts -->|Yes| ExtractQuery[Extract context_query]
     ExtractQuery --> CheckQuery{Query Provided?}
-    
     CheckQuery -->|No| Finalize
     CheckQuery -->|Yes| RefineRAG[Refined RAG Search]
-    
     RefineRAG --> ExpandContext[Expand Context Bundle]
     ExpandContext --> BuildPrompt
-    
     Finalize --> Score[Calculate Severity Score]
     Score --> Citations[Extract Citations]
     Citations --> Recommendations[Generate Recommendations]
     Recommendations --> Result[Analysis Result]
-    
     Result --> Store[Store in Database]
     Store --> End([Complete])
     
-    style Start fill:#e1f5ff
-    style End fill:#d4edda
-    style LLMCall fill:#f8d7da
-    style RefineRAG fill:#fff3cd
-    style Result fill:#d1ecf1
-            </div>
+    style Start fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style End fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style LLMCall fill:#fef2f2,stroke:#dc2626,stroke-width:2px
+    style RefineRAG fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style Result fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
         </div>
-        
-        <div id="flagging" class="diagram-section">
-            <h2>6. Flag Generation & Synthesis</h2>
-            <p>How analysis results are converted into flags (RED/YELLOW/GREEN) and stored.</p>
-            <div class="mermaid">
-flowchart TD
-    Analysis[Analysis Result] --> ExtractFlag[Extract Flag Color]
-    ExtractFlag --> RED{Flag = RED?}
-    ExtractFlag --> YELLOW{Flag = YELLOW?}
-    ExtractFlag --> GREEN{Flag = GREEN?}
+    </div>
     
-    RED -->|Yes| Critical[Critical Non-Conformity]
-    YELLOW -->|Yes| Warning[Potential Issue]
-    GREEN -->|Yes| Compliant[Compliant]
-    
-    Critical --> Severity[Calculate Severity Score]
-    Warning --> Severity
-    Compliant --> Severity
-    
-    Severity --> ExtractRefs[Extract Regulation References]
-    ExtractRefs --> ExtractGaps[Extract Gaps]
-    ExtractGaps --> ExtractRecs[Extract Recommendations]
-    
-    ExtractRecs --> CreateFlag[Create Flag Object]
-    CreateFlag --> UpsertDB[Upsert to Database]
-    
-    UpsertDB --> CheckExisting{Flag Exists?}
-    CheckExisting -->|Yes| Update[Update Existing Flag]
-    CheckExisting -->|No| Insert[Insert New Flag]
-    
-    Update --> LinkChunk[Link to Chunk Result]
-    Insert --> LinkChunk
-    
-    LinkChunk --> Aggregate[Aggregate Flags by Section]
-    Aggregate --> End([Flag Stored])
-    
-    style Analysis fill:#e1f5ff
-    style End fill:#d4edda
-    style Critical fill:#f8d7da
-    style Warning fill:#fff3cd
-    style Compliant fill:#d4edda
-    style UpsertDB fill:#d1ecf1
-            </div>
-        </div>
-        
-        <div id="pipeline" class="diagram-section">
-            <h2>7. Document Processing Pipeline</h2>
-            <p>The initial processing phase that prepares documents for auditing.</p>
-            <div class="mermaid">
-flowchart TB
-    Upload([Document Upload]) --> Validate[Validate File]
-    Validate --> Extract[Extract Text]
-    
-    Extract --> Parse[Parse Structure]
-    Parse --> Sections[Extract Sections]
-    
-    Sections --> Chunk[Semantic Chunking]
-    Chunk --> ChunkObjects[Create Chunk Objects]
-    
-    ChunkObjects --> StoreChunks[Store in Database]
-    StoreChunks --> EmbedQueue[Queue for Embedding]
-    
-    EmbedQueue --> GenerateEmbed[Generate Embeddings]
-    GenerateEmbed --> VectorStore[Store in Vector DB]
-    
-    VectorStore --> CreateAudit{Create Audit?}
-    CreateAudit -->|Yes| Audit[Create Audit Record]
-    CreateAudit -->|No| Complete([Processing Complete])
-    
-    Audit --> QueueAudit[Queue Audit]
-    QueueAudit --> Runner[Compliance Runner]
-    Runner --> Complete
-    
-    style Upload fill:#e1f5ff
-    style Complete fill:#d4edda
-    style Chunk fill:#fff3cd
-    style GenerateEmbed fill:#f8d7da
-    style Runner fill:#d1ecf1
-            </div>
-        </div>
-        
-        <div id="e2e" class="diagram-section">
-            <h2>8. Complete End-to-End Flow</h2>
-            <p>The complete journey from document upload to final audit report.</p>
-            <div class="mermaid">
+    <div class="diagram-section">
+        <div class="mermaid">
 flowchart TB
     subgraph "Phase 1: Document Ingestion"
         A1[Upload Document] --> A2[Extract Text]
@@ -516,102 +256,45 @@ flowchart TB
     D5 --> E1
     E5 --> F([Audit Complete])
     
-    style A1 fill:#e1f5ff
-    style F fill:#d4edda
-    style C3 fill:#f8d7da
-    style C6 fill:#fff3cd
-    style E5 fill:#d1ecf1
-            </div>
-        </div>
-        
-        <div id="components" class="diagram-section">
-            <h2>9. Component Interactions</h2>
-            <p>How different components of the system interact with each other.</p>
-            <div class="mermaid">
-graph TB
-    subgraph "Core Services"
-        Runner[ComplianceRunner]
-        ContextBuilder[ContextBuilder]
-        RecursiveBuilder[RecursiveContextBuilder]
-        LLMClient[ComplianceLLMClient]
-        FlagSynthesizer[FlagSynthesizer]
-    end
-    
-    subgraph "Data Layer"
-        DB[(SQLite Database)]
-        VectorDB[(ChromaDB Vector Store)]
-    end
-    
-    subgraph "Processing"
-        DocProcessor[DocumentProcessor]
-        Chunker[SemanticChunker]
-        EmbeddingService[EmbeddingService]
-    end
-    
-    DocProcessor --> Chunker
-    DocProcessor --> EmbeddingService
-    EmbeddingService --> VectorDB
-    
-    Runner --> ContextBuilder
-    Runner --> RecursiveBuilder
-    Runner --> LLMClient
-    Runner --> FlagSynthesizer
-    Runner --> DB
-    
-    ContextBuilder --> VectorDB
-    ContextBuilder --> DB
-    RecursiveBuilder --> ContextBuilder
-    RecursiveBuilder --> VectorDB
-    
-    LLMClient --> OpenRouter[OpenRouter API]
-    FlagSynthesizer --> DB
-    
-    style Runner fill:#fff3cd
-    style LLMClient fill:#f8d7da
-    style VectorDB fill:#d1ecf1
-    style DB fill:#d1ecf1
-            </div>
-        </div>
-        
-        <div class="legend">
-            <h3>Color Legend</h3>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #e1f5ff;"></div>
-                <span>Start/End Points</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #d4edda;"></div>
-                <span>Successful Completion</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #fff3cd;"></div>
-                <span>Processing/Transformation Steps</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #f8d7da;"></div>
-                <span>Critical Operations (LLM Calls, Analysis)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #d1ecf1;"></div>
-                <span>Data Storage/Retrieval</span>
-            </div>
+    style A1 fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style F fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style C3 fill:#fef2f2,stroke:#dc2626,stroke-width:2px
+    style C6 fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style E5 fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
         </div>
     </div>
     
     <script>
         mermaid.initialize({ 
             startOnLoad: true,
-            theme: 'default',
+            theme: 'base',
             themeVariables: {
-                primaryColor: '#667eea',
-                primaryTextColor: '#fff',
-                primaryBorderColor: '#764ba2',
-                lineColor: '#4a5568',
-                secondaryColor: '#f7fafc',
-                tertiaryColor: '#e2e8f0'
+                primaryColor: '#ffffff',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#6b7280',
+                secondaryColor: '#f9fafb',
+                tertiaryColor: '#f3f4f6',
+                background: '#ffffff',
+                mainBkg: '#ffffff',
+                secondBkg: '#ffffff',
+                textColor: '#1f2937',
+                edgeLabelBackground: '#ffffff',
+                clusterBkg: '#f9fafb',
+                clusterBorder: '#e5e7eb',
+                defaultLinkColor: '#3b82f6',
+                titleColor: '#1f2937',
+                nodeBorder: '#3b82f6',
+                nodeTextColor: '#1f2937'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 80,
+                useMaxWidth: true
             }
         });
     </script>
 </body>
 </html>
-

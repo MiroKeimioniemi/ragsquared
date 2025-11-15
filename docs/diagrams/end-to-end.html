@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End-to-End Flow</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .mermaid {
+            max-width: 100%;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="mermaid">
+flowchart TB
+    subgraph "Phase 1: Document Ingestion"
+        A1[Upload Document] --> A2[Extract Text]
+        A2 --> A3[Parse Structure]
+        A3 --> A4[Chunk Document]
+        A4 --> A5[Generate Embeddings]
+        A5 --> A6[Index in Vector Store]
+    end
+    
+    subgraph "Phase 2: Audit Execution"
+        B1[Create Audit] --> B2[Queue Audit]
+        B2 --> B3[Compliance Runner]
+        B3 --> B4[For Each Chunk]
+    end
+    
+    subgraph "Phase 3: Chunk Analysis"
+        C1[Build RAG Context] --> C2[Recursive RAG]
+        C2 --> C3[LLM Analysis]
+        C3 --> C4{Needs Refinement?}
+        C4 -->|Yes| C5[Refined RAG]
+        C5 --> C3
+        C4 -->|No| C6[Generate Flag]
+    end
+    
+    subgraph "Phase 4: Result Aggregation"
+        D1[Store Chunk Result] --> D2[Upsert Flag]
+        D2 --> D3[Update Progress]
+        D3 --> D4{More Chunks?}
+        D4 -->|Yes| B4
+        D4 -->|No| D5[Aggregate Results]
+    end
+    
+    subgraph "Phase 5: Report Generation"
+        E1[Calculate Statistics] --> E2[Generate Executive Summary]
+        E2 --> E3[Generate Detailed Findings]
+        E3 --> E4[Generate Recommendations]
+        E4 --> E5[Export Report]
+    end
+    
+    A6 --> B1
+    B4 --> C1
+    C6 --> D1
+    D5 --> E1
+    E5 --> F([Audit Complete])
+    
+    style A1 fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    style F fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style C3 fill:#fef2f2,stroke:#dc2626,stroke-width:2px
+    style C6 fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style E5 fill:#f0f9ff,stroke:#0284c7,stroke-width:2px
+    </div>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#ffffff',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#6b7280',
+                background: '#ffffff',
+                mainBkg: '#ffffff',
+                textColor: '#1f2937'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20,
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>
+
+

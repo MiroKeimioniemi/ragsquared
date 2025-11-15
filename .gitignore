@@ -8,14 +8,22 @@ __pycache__/
 # Env files
 .env
 
-# Hackathon resources
-hackathon_resources/
+# Data files - should never be committed
+data/
+backend/data/
+*.db
+*.sqlite3
+*.db-journal
+*.bin
+*.npy
 
-# Local data
-data/uploads/
-data/processed/
-data/logs/
-data/chroma/
+# ChromaDB
+**/chroma/
+
+# Uploaded documents
+**/uploads/
+**/processed/
+**/cache/
 
 # VSCode / IDE
 .vscode/
