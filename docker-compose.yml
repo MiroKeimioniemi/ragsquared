@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ragsquared-app
+    ports:
+      - "5000:5000"  # Flask backend
+      - "3000:3000"  # Next.js frontend
+    environment:
+      # Flask configuration
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - DATA_ROOT=/app/data
+      - DATABASE_URL=sqlite:///data/app.db
+      
+      # LLM API Configuration (set these in .env or override here)
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_BASE_URL=${LLM_API_BASE_URL:-https://openrouter.ai/api/v1}
+      - LLM_MODEL_COMPLIANCE=${LLM_MODEL_COMPLIANCE:-openrouter/horizon-beta}
+      
+      # Embedding configuration
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-large}
+      - EMBEDDING_API_BASE_URL=${EMBEDDING_API_BASE_URL:-https://openrouter.ai/api/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      
+      # Chunking configuration
+      - CHUNK_SIZE=${CHUNK_SIZE:-800}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-80}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_JSON=${LOG_JSON:-1}
+    volumes:
+      # Persist data directory (database, ChromaDB, uploads, etc.)
+      - ./data:/app/data
+      # Optional: mount .env file if you want to override settings
+      # - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: start
+
