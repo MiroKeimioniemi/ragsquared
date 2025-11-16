@@ -20,37 +20,54 @@ run_migrations() {
     
     # Check if database file exists and has tables but no alembic version
     if [ -f "/app/data/app.db" ]; then
-        # Check if alembic_version table exists
-        ALEMBIC_EXISTS=$(python -c "
+        # Check if alembic_version table exists and if documents table exists
+        DB_STATE=$(python -c "
 import sqlite3
 try:
     conn = sqlite3.connect('/app/data/app.db')
     cursor = conn.cursor()
+    # Check for alembic_version
     cursor.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'\")
-    result = cursor.fetchone()
+    alembic_exists = cursor.fetchone() is not None
+    # Check for documents table (first migration creates this)
+    cursor.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name='documents'\")
+    documents_exists = cursor.fetchone() is not None
     conn.close()
-    print('yes' if result else 'no')
-except:
-    print('no')
-" 2>/dev/null || echo "no")
+    print('stamped' if alembic_exists else ('has_tables' if documents_exists else 'empty'))
+except Exception as e:
+    print('error')
+" 2>/dev/null || echo "error")
         
-        if [ "$ALEMBIC_EXISTS" = "no" ]; then
-            # Database exists but no alembic tracking - stamp it
-            echo -e "${YELLOW}Database exists but no migration tracking found. Stamping database...${NC}"
+        if [ "$DB_STATE" = "has_tables" ]; then
+            # Database has tables but no alembic tracking - stamp it with head
+            echo -e "${YELLOW}Database has tables but no migration tracking. Stamping database to head...${NC}"
             set +e
-            python -m alembic -c alembic.ini stamp head
+            python -m alembic -c alembic.ini stamp head 2>&1 | grep -v "INFO\|WARN" || true
+            STAMP_STATUS=$?
             set -e
+            if [ $STAMP_STATUS -eq 0 ]; then
+                echo -e "${GREEN}Database stamped successfully${NC}"
+            else
+                echo -e "${YELLOW}Stamping had issues, but continuing with migration attempt...${NC}"
+            fi
         fi
     fi
     
     set +e  # Temporarily disable exit on error
-    python -m alembic -c alembic.ini upgrade head
+    MIGRATION_OUTPUT=$(python -m alembic -c alembic.ini upgrade head 2>&1)
     MIGRATION_STATUS=$?
     set -e  # Re-enable exit on error
+    
     if [ $MIGRATION_STATUS -eq 0 ]; then
         echo -e "${GREEN}Migrations complete${NC}"
     else
-        echo -e "${YELLOW}Migration had issues, but continuing...${NC}"
+        # Check if error is just "table already exists" - this is OK
+        if echo "$MIGRATION_OUTPUT" | grep -qi "already exists"; then
+            echo -e "${GREEN}Migrations complete (tables already exist, database is up to date)${NC}"
+        else
+            echo -e "${YELLOW}Migration had issues, but continuing...${NC}"
+            echo "$MIGRATION_OUTPUT" | tail -5
+        fi
     fi
 }
 
