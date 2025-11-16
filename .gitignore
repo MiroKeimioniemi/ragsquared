@@ -25,6 +25,10 @@ backend/data/
 **/processed/
 **/cache/
 
+# Embeddings cache (numpy arrays)
+**/cache/embeddings/
+**/embeddings/*.npy
+
 # VSCode / IDE
 .vscode/
 .idea/

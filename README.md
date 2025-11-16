@@ -2,6 +2,29 @@
 
 Hackathon-ready backend for the EASA Part-145 compliance assistant described in `AI_Auditing_System_Design.md`. The goal of this repo is to provide a minimal-yet-extensible Flask application that future tracks can build upon (document ingestion, agent orchestration, reporting, demo polish).
 
+## 🐳 Docker Deployment (Recommended)
+
+**Quick Start with Docker:**
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or build and run manually
+docker build -t ragsquared:latest .
+docker run -d -p 3000:3000 -p 5000:5000 -v $(pwd)/data:/app/data \
+  -e LLM_API_KEY=your-key-here \
+  ragsquared:latest
+```
+
+**For detailed Docker deployment instructions, see [DOCKER.md](DOCKER.md)**
+
+The Docker setup includes:
+- ✅ Flask backend + Next.js frontend in one container
+- ✅ ChromaDB persistence (most critical for embeddings)
+- ✅ SQLite database persistence
+- ✅ Automatic database migrations on startup
+- ✅ Production-ready configuration
+
 ## Features
 
 - Flask app factory with `/healthz` and `/` endpoints.
