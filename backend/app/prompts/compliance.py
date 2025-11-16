@@ -48,6 +48,9 @@ SYSTEM_PROMPT = dedent(
     CRITICAL REQUIREMENTS:
     - The "flag" field is REQUIRED and must be exactly one of: "RED", "YELLOW", or "GREEN" (as strings)
     - The "findings" field is REQUIRED and must be a non-empty string (at least one character)
+    - The "gaps" field MUST be an array of strings (e.g., ["Gap 1", "Gap 2"]), NOT an array of objects
+    - The "recommendations" field MUST be an array of strings (e.g., ["Recommendation 1", "Recommendation 2"]), NOT an array of objects
+    - The "regulation_references" field MUST be an array of strings (e.g., ["ML.A.501(a)", "ML.A.501(c)"])
     - The "citations" field is REQUIRED and must be an object with exactly these two fields:
       * "manual_section": string or null
       * "regulation_sections": array of strings (can be empty array)

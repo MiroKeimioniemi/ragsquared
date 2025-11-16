@@ -37,6 +37,42 @@ class ChunkAnalysis(BaseModel):
     needs_additional_context: bool = False
     context_query: str | None = None
 
+    @field_validator("gaps", mode="before")
+    @classmethod
+    def _normalize_gaps(cls, value: list[Any] | None) -> list[str]:
+        """Normalize gaps to list of strings, handling both string and object formats.
+        
+        The LLM should return gaps as an array of strings, but sometimes returns objects.
+        This validator handles both formats gracefully.
+        """
+        if not value:
+            return []
+        normalized = []
+        for item in value:
+            if isinstance(item, str):
+                normalized.append(item)
+            elif isinstance(item, dict):
+                # Extract gap description from various possible field names
+                gap_text = (
+                    item.get("gap_name") or
+                    item.get("gap_item") or
+                    item.get("gap_description") or
+                    item.get("description") or
+                    str(item)  # Fallback to string representation
+                )
+                if gap_text:
+                    normalized.append(str(gap_text))
+                    # Log when we normalize from object format to help track LLM compliance
+                    logger.debug(
+                        "Normalized gap from object format: %s -> %s",
+                        item,
+                        gap_text
+                    )
+            else:
+                # Fallback: convert to string
+                normalized.append(str(item))
+        return normalized
+
     @field_validator("regulation_references", "gaps", "recommendations", mode="after")
     @classmethod
     def _strip_entries(cls, values: list[str]) -> list[str]:

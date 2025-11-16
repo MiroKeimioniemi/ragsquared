@@ -94,8 +94,8 @@ export default function HomePage() {
               </CardHeader>
             </Card>
           </div>
-          <div className="bg-muted/50 rounded-lg p-8 border-2 border-primary/20">
-            <h3 className="text-2xl font-bold mb-4 text-center">The rag² Advantage</h3>
+          <div className="bg-muted/50 rounded-lg px-8 py-10 border-2 border-primary/20">
+            <h3 className="text-2xl font-bold mb-4 text-left">The rag² Advantage</h3>
             <div className="grid md:grid-cols-2 gap-6 text-left">
               <div>
                 <h4 className="font-semibold text-lg mb-2">Traditional RAG</h4>
@@ -268,7 +268,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link href="/dashboard">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
                 Schedule Demo
               </Button>
             </Link>

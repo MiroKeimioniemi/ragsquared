@@ -92,7 +92,7 @@ export default function DashboardPage() {
           <Link href="/legislation">
             <Button variant="outline">
               <Scale className="mr-2 h-4 w-4" />
-              Legislation
+              Upload Legislation
             </Button>
           </Link>
           <Link href="/upload">
