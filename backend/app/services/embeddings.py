@@ -452,7 +452,12 @@ def process_legislation_file(file, filename: str, db_session: Session, config: A
     try:
         # Step 1: Create Document using DocumentService (same as regulations)
         logger.info("Creating document for legislation upload...")
-        doc_service = DocumentService(Path(config.data_root), db_session)
+        # Normalize data_root for DocumentService to avoid double /data in paths
+        data_root_for_service = config.data_root.rstrip('/')
+        if data_root_for_service.endswith('/data'):
+            data_root_for_service = data_root_for_service[:-5]
+        logger.info(f"Using data_root for DocumentService: {data_root_for_service} (original: {config.data_root})")
+        doc_service = DocumentService(Path(data_root_for_service), db_session)
         document = doc_service.create_from_upload(
             file,
             source_type="regulation",  # Store as regulation so it's used in context building
@@ -463,16 +468,80 @@ def process_legislation_file(file, filename: str, db_session: Session, config: A
         
         # Step 2: Extract text from document
         logger.info("Extracting text from document...")
-        # Resolve storage path - handle both relative and absolute paths
-        storage_path = Path(config.data_root) / document.storage_path
-        if not storage_path.is_absolute():
-            storage_path = Path(config.data_root) / storage_path
+        # Resolve storage path - document.storage_path is relative to data_root
+        # DocumentService stores paths relative to data_root (e.g., "uploads/2025/11/16/file.pdf")
         
-        # Normalize the path
-        storage_path = storage_path.resolve()
+        # Normalize data_root - remove any trailing /data if present to avoid /app/data/data
+        data_root_str = config.data_root.rstrip('/')
+        if data_root_str.endswith('/data'):
+            # Remove trailing /data to avoid double data in path
+            data_root_str = data_root_str[:-5]
+            logger.warning(f"Normalized data_root from '{config.data_root}' to '{data_root_str}' to avoid double 'data' in path")
         
+        data_root_path = Path(data_root_str).resolve()
+        storage_path_str = document.storage_path.strip()
+        
+        logger.info(f"Resolving storage path - data_root: {config.data_root} -> normalized: {data_root_str} (resolved: {data_root_path}), storage_path from DB: {storage_path_str}")
+        
+        # If storage_path is already absolute, use it directly
+        if Path(storage_path_str).is_absolute():
+            storage_path = Path(storage_path_str).resolve()
+            logger.info(f"Storage path is absolute, using directly: {storage_path}")
+        else:
+            # Remove leading slashes
+            storage_path_str = storage_path_str.lstrip('/')
+            
+            # Check if storage_path_str already starts with data_root components
+            # This handles cases where storage_path might accidentally include "data/" prefix
+            data_root_name = data_root_path.name  # "data"
+            if storage_path_str.startswith(f"{data_root_name}/"):
+                logger.warning(f"Storage path includes '{data_root_name}/' prefix, removing it: {storage_path_str}")
+                storage_path_str = storage_path_str[len(f"{data_root_name}/"):]
+            
+            # Construct path relative to data_root
+            storage_path = (data_root_path / storage_path_str).resolve()
+            logger.info(f"Constructed storage path: {storage_path}")
+        
+        # Verify the path exists
         if not storage_path.exists():
-            raise ValueError(f"Storage path does not exist: {storage_path} (resolved from {document.storage_path})")
+            # Try alternative path resolutions for debugging
+            alt_paths = [
+                data_root_path / document.storage_path,  # Normalized path
+                Path(data_root_str) / document.storage_path,  # Normalized string path
+                Path("/app/data") / document.storage_path,  # Hardcoded fallback
+                Path(config.data_root) / document.storage_path,  # Original config (might have double data)
+            ]
+            
+            logger.error(f"Storage path does not exist: {storage_path}")
+            logger.error(f"  Config data_root: {config.data_root}")
+            logger.error(f"  Resolved data_root: {data_root_path}")
+            logger.error(f"  Storage path from DB: {document.storage_path}")
+            
+            for i, alt_path in enumerate(alt_paths, 1):
+                exists = alt_path.exists()
+                logger.error(f"  Alternative {i}: {alt_path} (exists: {exists})")
+                if exists:
+                    logger.warning(f"  Found file at alternative path {i}, using it")
+                    storage_path = alt_path.resolve()
+                    break
+            
+            if not storage_path.exists():
+                # List uploads directory to help debug
+                uploads_dir = data_root_path / "uploads"
+                if uploads_dir.exists():
+                    logger.error(f"  Uploads directory exists: {uploads_dir}")
+                    try:
+                        files = list(uploads_dir.rglob("*.pdf"))[:5]  # List first 5 PDFs
+                        logger.error(f"  Sample files in uploads: {[str(f) for f in files]}")
+                    except Exception as e:
+                        logger.error(f"  Could not list uploads directory: {e}")
+                else:
+                    logger.error(f"  Uploads directory does not exist: {uploads_dir}")
+                
+                raise ValueError(
+                    f"Storage path does not exist: {storage_path} "
+                    f"(resolved from '{document.storage_path}', data_root: '{config.data_root}')"
+                )
         
         logger.info(f"Extracting from storage path: {storage_path}")
         extractor = DocumentExtractor()
