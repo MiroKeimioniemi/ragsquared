@@ -155,11 +155,21 @@ export default function ReviewPage() {
   const handleResumeAudit = async () => {
     setResuming(true);
     try {
-      await api.audits.resume(auditId);
+      const response = await api.audits.resume(auditId) as any;
+      // Immediately update the audit status to provide feedback
+      if (audit) {
+        setAudit({
+          ...audit,
+          status: response.status || "queued",
+          failure_reason: undefined,
+          failed_at: undefined,
+        });
+      }
+      // Reload audit data after a short delay to get updated status
       setTimeout(() => {
         loadAudit();
         setResuming(false);
-      }, 1500);
+      }, 1000);
     } catch (error: any) {
       alert(`Failed to resume audit: ${error.message}`);
       setResuming(false);

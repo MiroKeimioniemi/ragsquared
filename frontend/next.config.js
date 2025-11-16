@@ -9,6 +9,10 @@ const nextConfig = {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
       },
+      {
+        source: '/review/:path*',
+        destination: `${backendUrl}/review/:path*`,
+      },
     ];
   },
   // Increase API route timeout for long-running operations (legislation uploads)

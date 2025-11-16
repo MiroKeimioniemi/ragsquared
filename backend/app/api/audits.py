@@ -263,6 +263,9 @@ def resume_audit(audit_id: str) -> tuple[dict[str, object], int]:
     """Resume/restart processing of a stuck or failed audit."""
     import threading
     from flask import current_app
+    from ..logging_config import get_logger
+    
+    logger = get_logger(__name__)
     
     session = get_session()
     audit = _resolve_audit(session, audit_id)
@@ -274,37 +277,62 @@ def resume_audit(audit_id: str) -> tuple[dict[str, object], int]:
     if audit.status == "completed":
         return jsonify({"error": "Cannot resume a completed audit."}), 400
     
-    # Reset status to "running" if it was "failed"
-    if audit.status == "failed":
-        audit.status = "running"
+    # Reset status to "queued" if it was "failed" or stuck in "running"
+    # Setting to "queued" allows ComplianceRunner to properly initialize it
+    # Note: chunk_completed and chunk_total are preserved - we resume from where we left off
+    if audit.status in ("failed", "running"):
+        logger.info(
+            "Resetting audit status for resume",
+            audit_id=audit_id,
+            old_status=audit.status,
+            chunk_completed=audit.chunk_completed,
+            chunk_total=audit.chunk_total,
+            remaining=audit.chunk_total - audit.chunk_completed if audit.chunk_total else 0,
+        )
+        audit.status = "queued"
         audit.failure_reason = None
+        audit.failed_at = None
         session.commit()
     
     # Import here to avoid circular imports
     from ..config.settings import AppConfig
     from ..services.compliance_runner import ComplianceRunner
-    from ..logging_config import get_logger
-    
-    logger = get_logger(__name__)
     
     # Capture app instance while we're still in the request context
     app = current_app._get_current_object()
     
     def resume_audit_background():
-        """Background thread function to resume audit processing."""
+        """Background thread function to resume audit processing.
+        
+        This will resume from where the audit left off by only processing
+        chunks that don't have an AuditChunkResult entry (i.e., unprocessed chunks).
+        """
         with app.app_context():
             session = get_session()
             config = AppConfig()
-            # Fetch audit first to get is_draft status
+            # Fetch audit first to get is_draft status and current progress
             audit = _resolve_audit(session, audit_id)
             if not audit:
                 logger.error(f"Audit {audit_id} not found in background thread")
                 return
+            
+            # Log resume point for debugging
+            logger.info(
+                "Resuming audit from checkpoint",
+                audit_id=audit_id,
+                chunk_completed=audit.chunk_completed,
+                chunk_total=audit.chunk_total,
+                status=audit.status,
+            )
+            
             try:
                 runner = ComplianceRunner(session, config)
+                # max_chunks=None means process all remaining chunks
+                # The runner's _pending_chunks() method automatically skips
+                # chunks that already have AuditChunkResult entries
                 result = runner.run(
                     audit_id,
-                    max_chunks=None,  # Process all remaining chunks
+                    max_chunks=None,  # Process all remaining chunks (skips already-processed ones)
                     include_evidence=not audit.is_draft,
                 )
                 logger.info(
@@ -339,7 +367,7 @@ def resume_audit(audit_id: str) -> tuple[dict[str, object], int]:
     return jsonify({
         "message": "Audit resume started in background",
         "audit_id": audit_id,
-        "status": "running",
+        "status": audit.status,  # Will be "queued" after reset
     }), 200
 
 
